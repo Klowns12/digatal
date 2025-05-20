@@ -1,0 +1,74 @@
+{
+  "nav": {
+    "home": "Home",
+    "about": "About",
+    "services": "Services",
+    "contact": "Contact"
+  },
+  "header": {
+    "title": "Digital Nova Co., Ltd.",
+    "subtitle": "E-Learning Services"
+  },
+  "hero": {
+    "title": "Divi Tutoring School of San Francisco",
+    "description": "Specializing in creating e-learning media in online form (e-Learning) and providing teaching systems like SCORM (offline), Tincan, xAPI, rise 360, 360 Training, infographics, animation including video production and LMS systems"
+  },
+  "cta": {
+    "freeAssessment": "Free Assessment",
+    "learnMore": "Learn More",
+    "submit": "Submit",
+    "readMore": "Read More"
+  },
+  "services": {
+    "title": "Our Services",
+    "elearning": {
+      "title": "Customized e-Learning",
+      "description": "Custom e-Learning courses tailored to your needs"
+    },
+    "videoProduction": {
+      "title": "Video Production",
+      "description": "Professional video production for educational content"
+    }
+  },
+  "courses": {
+    "title": "Featured Courses",
+    "viewAll": "View All Courses"
+  },
+  "contact": {
+    "title": "Contact Us",
+    "formName": "Name",
+    "formEmail": "Email Address",
+    "formMessage": "Message",
+    "phone": "Phone",
+    "email": "Email"
+  },
+  "footer": {
+    "copyright": "© 2025 Digital Nova. All Rights Reserved.",
+    "links": {
+      "privacyPolicy": "Privacy Policy",
+      "termsOfService": "Terms of Service",
+      "siteMap": "Site Map"
+    }
+  },
+  "admin": {
+    "login": "Admin Login",
+    "dashboard": "Dashboard",
+    "content": "Content Management",
+    "services": "Services",
+    "courses": "Courses",
+    "images": "Image Library",
+    "videos": "Videos",
+    "logos": "Client Logos",
+    "featuredItems": "Featured Items",
+    "displaySettings": "Display Settings",
+    "filterByCategory": "Filter by Category",
+    "allCategories": "All Categories",
+    "showFeaturedOnly": "Show Featured Only",
+    "showHiddenItems": "Show Hidden Items",
+    "save": "Save Changes",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add New"
+  }
+}

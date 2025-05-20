@@ -1,0 +1,74 @@
+{
+  "nav": {
+    "home": "หน้าแรก",
+    "about": "เกี่ยวกับเรา",
+    "services": "บริการ",
+    "contact": "ติดต่อเรา"
+  },
+  "header": {
+    "title": "Digital Nova Co., Ltd.",
+    "subtitle": "บริการออกแบบสื่อการเรียนรู้"
+  },
+  "hero": {
+    "title": "Divi Tutoring School of San Francisco",
+    "description": "เราชำนาญในการจัดทำสื่อการเรียนการสอนในรูปแบบออนไลน์ (อีเลิร์นนิ่ง, E-learning) และจัดทำให้ได้ตามหลักมาตรฐาน เช่น SCORM (จัดทำแบบออฟไลน์), Tincan, xAPI รวมถึง video production, infographics, animation และระบบ LMS ครบวงจร"
+  },
+  "cta": {
+    "freeAssessment": "ประเมินฟรี",
+    "learnMore": "เรียนรู้เพิ่มเติม",
+    "submit": "ส่งข้อมูล",
+    "readMore": "อ่านเพิ่มเติม"
+  },
+  "services": {
+    "title": "บริการของเรา",
+    "elearning": {
+      "title": "Customized e-Learning",
+      "description": "จัดทำหลักสูตรในรูปแบบที่ลูกค้าต้องการ"
+    },
+    "videoProduction": {
+      "title": "Video Production",
+      "description": "ออกแบบทำวีดีโอในรูปแบบวีดีโอ"
+    }
+  },
+  "courses": {
+    "title": "คอร์สแนะนำ",
+    "viewAll": "ดูคอร์สทั้งหมด"
+  },
+  "contact": {
+    "title": "ติดต่อเรา",
+    "formName": "ชื่อ",
+    "formEmail": "อีเมล",
+    "formMessage": "ข้อความ",
+    "phone": "โทรศัพท์",
+    "email": "อีเมล"
+  },
+  "footer": {
+    "copyright": "© 2025 Digital Nova สงวนลิขสิทธิ์",
+    "links": {
+      "privacyPolicy": "นโยบายความเป็นส่วนตัว",
+      "termsOfService": "เงื่อนไขการให้บริการ",
+      "siteMap": "แผนผังเว็บไซต์"
+    }
+  },
+  "admin": {
+    "login": "เข้าสู่ระบบผู้ดูแล",
+    "dashboard": "แดชบอร์ด",
+    "content": "จัดการเนื้อหา",
+    "services": "บริการ",
+    "courses": "คอร์สเรียน",
+    "images": "คลังรูปภาพ",
+    "videos": "วิดีโอ",
+    "logos": "โลโก้ลูกค้า",
+    "featuredItems": "รายการแนะนำ",
+    "displaySettings": "การตั้งค่าการแสดงผล",
+    "filterByCategory": "กรองตามหมวดหมู่",
+    "allCategories": "ทุกหมวดหมู่",
+    "showFeaturedOnly": "แสดงเฉพาะรายการแนะนำ",
+    "showHiddenItems": "แสดงรายการที่ซ่อนอยู่",
+    "save": "บันทึกการเปลี่ยนแปลง",
+    "cancel": "ยกเลิก",
+    "delete": "ลบ",
+    "edit": "แก้ไข",
+    "add": "เพิ่มใหม่"
+  }
+}
