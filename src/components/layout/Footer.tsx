@@ -13,7 +13,7 @@ const Footer = () => {
           {/* Company Info */}
           <div className="md:col-span-1">
             <Link to="/" className="inline-block mb-4">
-              <span className="font-bold text-2xl">DSN</span>
+              <img src="/imags/logo.png" alt="DSN Logo" className="h-8 w-auto mb-2" />
               <span className="block text-xs text-gray-400">DIGITAL NOVA CO., LTD.</span>
             </Link>
             <p className="text-sm mb-4 text-gray-300">

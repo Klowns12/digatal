@@ -3,9 +3,11 @@ import { useTranslation } from 'react-i18next';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { Service } from '../../types';
-import { Trash2, Plus, Edit, Star, Home, Menu, Check, Settings, Eye, BookOpen, Video, Image } from 'lucide-react';
+import { Trash2, Plus, Edit, Star, Home, Menu, Check, Settings, Eye, BookOpen, Video, Image, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getFeaturedItems, toggleItemFeatured } from '../../services/featuredItemsService';
+import { getVideosByCategory, getFeaturedInCategoryVideos, toggleVideoFeatured, updateVideo } from '../../services/videoService';
+import { get360TourItems } from '../../services/featureService';
 
 // Placeholder data
 const initialServices: Service[] = [
@@ -47,7 +49,6 @@ const Play = ({ size = 24, className = '' }) => (
 
 // Add admin section navigation
 const adminSections = [
-  { id: 'dashboard', label: 'แดชบอร์ด', icon: Home },
   { id: 'services', label: 'บริการ', icon: Settings },
   { id: 'content', label: 'เนื้อหาเว็บไซต์', icon: Menu },
   { id: 'videos', label: 'วิดีโอ', icon: Play },
@@ -64,32 +65,37 @@ const categoryLabels: Record<string, string> = {
   'web': 'Web Design & Development'
 };
 
-// Updated mock data to match what's displayed in the frontend Services component
-const allCategoriesItems: Record<string, Array<{id: string, title: string, featured: boolean}>> = {
+// Update the mock data structure to include descriptions instead of prices/ratings
+const allCategoriesItems: Record<string, Array<{id: string, title: string, description: string, featured: boolean}>> = {
   'elearning': Array.from({ length: 20 }, (_, i) => ({
     id: `elearn-${i + 1}`,
     title: `e-Learning Project ${i + 1}`,
-    featured: [0, 1, 2, 11].includes(i) // Items 1, 2, 3, and 12 are featured
+    description: `Short description for e-Learning project ${i + 1} showcasing key features and benefits.`,
+    featured: [0, 1, 2, 11].includes(i)
   })),
   'video': Array.from({ length: 20 }, (_, i) => ({
     id: `video-${i + 1}`,
     title: `Video Project ${i + 1}`,
-    featured: i < 4 // First 4 are featured (1, 2, 3, 4)
+    description: `Brief overview of video project ${i + 1} highlighting production quality and educational value.`,
+    featured: i < 4
   })),
   '360': Array.from({ length: 20 }, (_, i) => ({
     id: `360-${i + 1}`,
     title: `360° Tour ${i + 1}`,
-    featured: i < 4 // First 4 are featured (1, 2, 3, 4)
+    description: `Immersive 360° virtual experience ${i + 1} allowing viewers to explore environments interactively.`,
+    featured: i < 4
   })),
   'lms': Array.from({ length: 20 }, (_, i) => ({
     id: `lms-${i + 1}`,
     title: `LMS Solution ${i + 1}`,
-    featured: i < 4 // First 4 are featured (1, 2, 3, 4)
+    description: `Comprehensive learning management solution ${i + 1} with analytics and user tracking capabilities.`,
+    featured: i < 4
   })),
   'web': Array.from({ length: 20 }, (_, i) => ({
     id: `web-${i + 1}`,
     title: `Web Project ${i + 1}`,
-    featured: i < 4 // First 4 are featured (1, 2, 3, 4)
+    description: `Responsive, user-friendly website ${i + 1} designed to meet specific client requirements and goals.`,
+    featured: i < 4
   }))
 };
 
@@ -102,21 +108,28 @@ const ServicesAdmin = () => {
   
   // Add state for homepage feature management
   const [activeView, setActiveView] = useState<'services' | 'homepage' | 'display'>('services');
-  const [categoryItems, setCategoryItems] = useState<Record<string, Array<{id: string, title: string, featured: boolean}>>>({});
+  const [categoryItems, setCategoryItems] = useState<Record<string, Array<{id: string, title: string, featured: boolean, description?: string}>>>({});
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [displaySettings, setDisplaySettings] = useState({
-    showPrices: true,
-    showRatings: true,
+    showDescriptions: true,
+    truncateDescriptions: true,
     itemsPerPage: 20,
     defaultSort: 'newest'
   });
   
-  // Load featured items on component mount
+  // Store videos for all categories
+  const [categoryVideos, setCategoryVideos] = useState<Record<string, Array<any>>>({});
+  
+  // Add pagination state for the homepage view
+  const [categoryPagination, setCategoryPagination] = useState<Record<string, number>>({});
+  const itemsPerPage = 20;
+  
+  // Load featured items and videos on component mount
   useEffect(() => {
     const featuredItems = getFeaturedItems();
     
     // Convert from IDs to full items with featured flag
-    const items: Record<string, Array<{id: string, title: string, featured: boolean}>> = {};
+    const items: Record<string, Array<{id: string, title: string, featured: boolean, description: string}>> = {};
     
     Object.keys(allCategoriesItems).forEach(categoryId => {
       const featuredIds = featuredItems[categoryId] || [];
@@ -131,7 +144,33 @@ const ServicesAdmin = () => {
     });
     
     setCategoryItems(items);
+    
+    // Load videos for all categories
+    const videos: Record<string, Array<any>> = {};
+    Object.keys(allCategoriesItems).forEach(categoryId => {
+      videos[categoryId] = getVideosByCategory(categoryId);
+    });
+    setCategoryVideos(videos);
+    
+    // Initialize pagination for each category
+    const initialPagination: Record<string, number> = {};
+    Object.keys(allCategoriesItems).forEach(categoryId => {
+      initialPagination[categoryId] = 1; // Start at page 1 for each category
+    });
+    setCategoryPagination(initialPagination);
+    
+    // Listen for video updates
+    window.addEventListener('videos-updated', loadAllVideos);
+    return () => window.removeEventListener('videos-updated', loadAllVideos);
   }, []);
+  
+  const loadAllVideos = () => {
+    const videos: Record<string, Array<any>> = {};
+    Object.keys(allCategoriesItems).forEach(categoryId => {
+      videos[categoryId] = getVideosByCategory(categoryId);
+    });
+    setCategoryVideos(videos);
+  };
   
   const handleEdit = (service: Service) => {
     setEditingService(service);
@@ -206,6 +245,22 @@ const ServicesAdmin = () => {
     });
   };
   
+  // Handle toggling featured status for videos
+  const handleToggleVideoFeatured = (categoryId: string, videoId: string) => {
+    // Toggle using the video service
+    const isFeatured = toggleVideoFeatured(categoryId, videoId);
+    
+    // Update local state
+    setCategoryVideos(prev => {
+      return {
+        ...prev,
+        [categoryId]: prev[categoryId].map(video => 
+          video.id === videoId ? { ...video, featured: isFeatured } : video
+        )
+      };
+    });
+  };
+  
   const saveHomepageSettings = () => {
     // In a real application, you'd save this to your backend
     console.log('Saving homepage featured items:', categoryItems);
@@ -224,6 +279,189 @@ const ServicesAdmin = () => {
 
   const saveDisplaySettings = () => {
     console.log('Saving display settings:', displaySettings);
+    setShowSaveSuccess(true);
+    setTimeout(() => setShowSaveSuccess(false), 3000);
+  };
+  
+  // Get items for the current page in a category
+  const getCurrentPageItems = (categoryId: string, items: any[], videos: any[]) => {
+    const currentPage = categoryPagination[categoryId] || 1;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    
+    // Combine videos and regular items, preserving video order at the top
+    const combinedItems = [...videos, ...items];
+    
+    return combinedItems.slice(startIndex, startIndex + itemsPerPage);
+  };
+  
+  // Calculate total pages for a category
+  const calculateTotalPages = (categoryId: string) => {
+    const items = categoryItems[categoryId] || [];
+    const videos = categoryVideos[categoryId] || [];
+    const totalItems = items.length + videos.length;
+    
+    return Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  };
+  
+  // Handle page change for a specific category
+  const handlePageChange = (categoryId: string, pageNumber: number) => {
+    const totalPages = calculateTotalPages(categoryId);
+    
+    // Ensure page number is within valid range
+    if (pageNumber < 1) pageNumber = 1;
+    if (pageNumber > totalPages) pageNumber = totalPages;
+    
+    setCategoryPagination(prev => ({
+      ...prev,
+      [categoryId]: pageNumber
+    }));
+  };
+  
+  // Generate page numbers for pagination
+  const generatePageNumbers = (categoryId: string) => {
+    const currentPage = categoryPagination[categoryId] || 1;
+    const totalPages = calculateTotalPages(categoryId);
+    
+    if (totalPages <= 1) return [];
+    
+    const pageNumbers = [];
+    
+    if (totalPages <= 7) {
+      // Show all pages if 7 or fewer
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      // Always add page 1
+      pageNumbers.push(1);
+      
+      // Add ellipsis if current page is more than 3
+      if (currentPage > 3) {
+        pageNumbers.push('ellipsis1');
+      }
+      
+      // Add a window around current page
+      const startPage = Math.max(2, currentPage - 1);
+      const endPage = Math.min(totalPages - 1, currentPage + 1);
+      
+      for (let i = startPage; i <= endPage; i++) {
+        pageNumbers.push(i);
+      }
+      
+      // Add ellipsis if current page is less than total pages - 2
+      if (currentPage < totalPages - 2) {
+        pageNumbers.push('ellipsis2');
+      }
+      
+      // Always add last page
+      if (totalPages > 1) {
+        pageNumbers.push(totalPages);
+      }
+    }
+    
+    return pageNumbers;
+  };
+  
+  // Add state for item editing
+  const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [isEditingItem, setIsEditingItem] = useState(false);
+  const [editingItemType, setEditingItemType] = useState<'regular' | 'video'>('regular');
+  const [editItemActiveTab, setEditItemActiveTab] = useState<'english' | 'thai'>('english');
+  
+  // Handle opening the item edit modal
+  const handleEditItem = (item: any, type: 'regular' | 'video', categoryId: string) => {
+    // Create a copy of the item to edit
+    const itemToEdit = { ...item, categoryId };
+    setEditingItem(itemToEdit);
+    setEditingItemType(type);
+    setIsEditingItem(true);
+    setEditItemActiveTab('english');
+  };
+  
+  // Handle canceling item edit
+  const handleCancelEditItem = () => {
+    setEditingItem(null);
+    setIsEditingItem(false);
+  };
+  
+  // Handle saving edited item
+  const handleSaveEditedItem = () => {
+    if (!editingItem) return;
+    
+    if (editingItemType === 'video') {
+      // Update video in the service
+      updateVideo(editingItem.categoryId, editingItem.id, editingItem);
+      
+      // Update local state
+      setCategoryVideos(prev => {
+        return {
+          ...prev,
+          [editingItem.categoryId]: prev[editingItem.categoryId].map(video => 
+            video.id === editingItem.id ? editingItem : video
+          )
+        };
+      });
+    } else {
+      // Update regular item in the state
+      setCategoryItems(prev => {
+        return {
+          ...prev,
+          [editingItem.categoryId]: prev[editingItem.categoryId].map(item => 
+            item.id === editingItem.id ? editingItem : item
+          )
+        };
+      });
+    }
+    
+    // Close the edit modal
+    setEditingItem(null);
+    setIsEditingItem(false);
+    
+    // Show success message
+    setShowSaveSuccess(true);
+    setTimeout(() => setShowSaveSuccess(false), 3000);
+  };
+  
+  // Handle change in item field values
+  const handleEditItemChange = (field: string, value: any) => {
+    if (!editingItem) return;
+    
+    if (editItemActiveTab === 'english' && (field === 'title' || field === 'description')) {
+      setEditingItem({ ...editingItem, [field]: value });
+    } else if (editItemActiveTab === 'thai') {
+      if (field === 'title') {
+        setEditingItem({ ...editingItem, titleThai: value });
+      } else if (field === 'description') {
+        setEditingItem({ ...editingItem, descriptionThai: value });
+      }
+    } else {
+      setEditingItem({ ...editingItem, [field]: value });
+    }
+  };
+  
+  // Delete an item
+  const handleDeleteItem = (item: any, type: 'regular' | 'video', categoryId: string) => {
+    if (!window.confirm('Are you sure you want to delete this item?')) return;
+    
+    if (type === 'video') {
+      // Delete video from local state (in a real app, you would call an API)
+      setCategoryVideos(prev => {
+        return {
+          ...prev,
+          [categoryId]: prev[categoryId].filter(video => video.id !== item.id)
+        };
+      });
+    } else {
+      // Delete regular item from local state
+      setCategoryItems(prev => {
+        return {
+          ...prev,
+          [categoryId]: prev[categoryId].filter(regularItem => regularItem.id !== item.id)
+        };
+      });
+    }
+    
+    // Show success message
     setShowSaveSuccess(true);
     setTimeout(() => setShowSaveSuccess(false), 3000);
   };
@@ -433,6 +671,23 @@ const ServicesAdmin = () => {
                 )}
               </div>
               
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">YouTube URL</label>
+                <input
+                  type="text"
+                  value={editingService.youtubeUrl}
+                  onChange={(e) => handleChange('youtubeUrl', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://www.youtube.com/watch?v=..."
+                />
+                {editingService.youtubeUrl && (
+                  <p className="mt-1 text-xs text-green-600 flex items-center">
+                    <Check size={12} className="mr-1" />
+                    YouTube URL ถูกต้อง
+                  </p>
+                )}
+              </div>
+              
               <div className="flex justify-end space-x-3 pt-4">
                 <button
                   onClick={handleCancel}
@@ -462,7 +717,20 @@ const ServicesAdmin = () => {
 
           {Object.keys(categoryItems).map((categoryId) => {
             const category = categoryItems[categoryId];
-            const featuredCount = category.filter(item => item.featured).length;
+            const videos = categoryVideos[categoryId] || [];
+            
+            // Count featured items (both regular items and videos)
+            const featuredItemsCount = category.filter(item => item.featured).length;
+            const featuredVideosCount = videos.filter(video => video.featured).length;
+            const totalFeaturedCount = featuredItemsCount + featuredVideosCount;
+            
+            // Get total count of all items (videos + regular items)
+            const totalItems = category.length + videos.length;
+            const totalPages = calculateTotalPages(categoryId);
+            const currentPage = categoryPagination[categoryId] || 1;
+            
+            // Get items for current page
+            const currentPageItems = getCurrentPageItems(categoryId, category, videos);
             
             return (
               <div key={categoryId} className="bg-white rounded-lg shadow-sm p-6">
@@ -470,56 +738,307 @@ const ServicesAdmin = () => {
                   <div>
                     <h3 className="font-semibold text-lg">{categoryLabels[categoryId]}</h3>
                     <p className="text-sm text-gray-500">
-                      รายการที่เลือก: {featuredCount}/4
+                      รายการที่เลือก: {totalFeaturedCount}/4
                     </p>
                   </div>
-                  {featuredCount === 4 && (
+                  {totalFeaturedCount === 4 && (
                     <span className="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-full">
                       เลือกครบ 4 รายการแล้ว
                     </span>
                   )}
+                  {categoryId === 'video' && (
+                    <Link to="/admin/videos" className="text-blue-600 hover:underline flex items-center text-sm">
+                      <Video size={16} className="mr-1" />
+                      จัดการวิดีโอ
+                    </Link>
+                  )}
                 </div>
                 
+                {/* Display current page items */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {category.map((item) => (
-                    <div 
-                      key={item.id}
-                      className={`border rounded-md p-4 transition-all ${
-                        item.featured 
-                          ? 'border-blue-300 bg-blue-50' 
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="truncate pr-2">
-                          <p className="font-medium">{item.title}</p>
+                  {currentPageItems.map((item) => {
+                    // Check if this is a video item
+                    const isVideo = 'youtubeUrl' in item && !('featured' in item);
+                    
+                    return (
+                      <div 
+                        key={isVideo ? `video-${item.id}` : item.id}
+                        className={`border rounded-md p-4 transition-all ${
+                          (isVideo ? item.featured : item.featured)
+                            ? 'border-blue-300 bg-blue-50' 
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="pr-2 flex-grow">
+                            <p className="font-medium truncate">{item.title}</p>
+                            {isVideo && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mb-1">
+                                Video
+                              </span>
+                            )}
+                            {item.description && (
+                              <p className="text-xs text-gray-600 mt-1 line-clamp-2">{item.description}</p>
+                            )}
+                          </div>
+                          <div className="flex space-x-1">
+                            {/* Edit button */}
+                            <button 
+                              onClick={() => handleEditItem(item, isVideo ? 'video' : 'regular', categoryId)}
+                              className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                              title="Edit item"
+                            >
+                              <Edit size={14} />
+                            </button>
+                            
+                            {/* Delete button */}
+                            <button 
+                              onClick={() => handleDeleteItem(item, isVideo ? 'video' : 'regular', categoryId)}
+                              className="p-1 text-red-600 hover:bg-red-50 rounded"
+                              title="Delete item"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                            
+                            {/* Star button */}
+                            <button 
+                              onClick={() => {
+                                if (isVideo) {
+                                  handleToggleVideoFeatured(categoryId, item.id);
+                                } else {
+                                  handleToggleItemFeatured(categoryId, item.id);
+                                }
+                              }}
+                              className={`flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center ${
+                                (isVideo ? item.featured : item.featured)
+                                  ? 'bg-blue-500 text-white' 
+                                  : 'bg-gray-200 text-gray-500 hover:bg-gray-300'
+                              }`}
+                              disabled={!(isVideo ? item.featured : item.featured) && totalFeaturedCount >= 4}
+                            >
+                              <Star size={14} fill={(isVideo ? item.featured : item.featured) ? 'currentColor' : 'none'} />
+                            </button>
+                          </div>
                         </div>
-                        <button 
-                          onClick={() => handleToggleItemFeatured(categoryId, item.id)}
-                          className={`flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center ${
-                            item.featured 
-                              ? 'bg-blue-500 text-white' 
-                              : 'bg-gray-200 text-gray-500 hover:bg-gray-300'
-                          }`}
-                          disabled={!item.featured && featuredCount >= 4}
-                        >
-                          <Star size={14} fill={item.featured ? 'currentColor' : 'none'} />
-                        </button>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
+                
+                {/* Pagination controls - Only show if total pages > 1 */}
+                {totalPages > 1 && (
+                  <div className="mt-6 flex flex-wrap justify-center items-center">
+                    {/* First page button */}
+                    <button 
+                      onClick={() => handlePageChange(categoryId, 1)}
+                      disabled={currentPage === 1}
+                      className={`mx-1 w-10 h-10 flex items-center justify-center rounded-md ${
+                        currentPage === 1 
+                          ? 'text-gray-400 cursor-not-allowed' 
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                      aria-label="First page"
+                    >
+                      <ChevronsLeft size={18} />
+                    </button>
+                    
+                    {/* Previous page button */}
+                    <button 
+                      onClick={() => handlePageChange(categoryId, currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className={`mx-1 w-10 h-10 flex items-center justify-center rounded-md ${
+                        currentPage === 1 
+                          ? 'text-gray-400 cursor-not-allowed' 
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                      aria-label="Previous page"
+                    >
+                      <ChevronLeft size={18} />
+                    </button>
+                    
+                    {/* Page numbers */}
+                    {generatePageNumbers(categoryId).map((page, index) => (
+                      page === 'ellipsis1' || page === 'ellipsis2' ? (
+                        <span 
+                          key={`ellipsis-${index}-${categoryId}`}
+                          className="mx-1 w-10 h-10 flex items-center justify-center text-gray-700"
+                        >
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={`page-${page}-${categoryId}`}
+                          onClick={() => handlePageChange(categoryId, page as number)}
+                          className={`mx-1 w-10 h-10 flex items-center justify-center rounded-md ${
+                            currentPage === page 
+                              ? 'bg-blue-600 text-white' 
+                              : 'text-gray-700 hover:bg-gray-100'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      )
+                    ))}
+                    
+                    {/* Next page button */}
+                    <button 
+                      onClick={() => handlePageChange(categoryId, currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className={`mx-1 w-10 h-10 flex items-center justify-center rounded-md ${
+                        currentPage === totalPages 
+                          ? 'text-gray-400 cursor-not-allowed' 
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                      aria-label="Next page"
+                    >
+                      <ChevronRight size={18} />
+                    </button>
+                    
+                    {/* Last page button */}
+                    <button 
+                      onClick={() => handlePageChange(categoryId, totalPages)}
+                      disabled={currentPage === totalPages}
+                      className={`mx-1 w-10 h-10 flex items-center justify-center rounded-md ${
+                        currentPage === totalPages 
+                          ? 'text-gray-400 cursor-not-allowed' 
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                      aria-label="Last page"
+                    >
+                      <ChevronsRight size={18} />
+                    </button>
+                    
+                    {/* Page indicator */}
+                    <span className="ml-4 text-sm text-gray-700">
+                      หน้า {currentPage} จาก {totalPages}
+                    </span>
+                  </div>
+                )}
               </div>
             );
           })}
           
+          {/* Save Button for Homepage Settings */}
           <div className="flex justify-end mt-6">
             <button
               onClick={saveHomepageSettings}
               className="px-6 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition"
             >
-              บันทึกการเปลี่ยนแปลง
+              บันทึกรายการในหน้าหลัก
             </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Item Edit Modal */}
+      {isEditingItem && editingItem && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl overflow-hidden">
+            <div className="flex justify-between items-center px-6 py-4 border-b">
+              <h2 className="text-xl font-semibold">
+                {editingItemType === 'video' ? 'แก้ไขวิดีโอ' : 'แก้ไขรายการ'}
+              </h2>
+              
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setEditItemActiveTab('english')}
+                  className={`px-3 py-1 text-sm font-medium rounded-md ${
+                    editItemActiveTab === 'english'
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                      : 'bg-white text-gray-500 border border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  English
+                </button>
+                <button
+                  onClick={() => setEditItemActiveTab('thai')}
+                  className={`px-3 py-1 text-sm font-medium rounded-md ${
+                    editItemActiveTab === 'thai'
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                      : 'bg-white text-gray-500 border border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  Thai
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Title / ชื่อรายการ</label>
+                <input
+                  type="text"
+                  value={editItemActiveTab === 'english' ? editingItem.title : (editingItem.titleThai || '')}
+                  onChange={(e) => handleEditItemChange(editItemActiveTab === 'english' ? 'title' : 'titleThai', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description / รายละเอียด</label>
+                <textarea
+                  value={editItemActiveTab === 'english' ? editingItem.description : (editingItem.descriptionThai || '')}
+                  onChange={(e) => handleEditItemChange(editItemActiveTab === 'english' ? 'description' : 'descriptionThai', e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+                ></textarea>
+              </div>
+              
+              {/* YouTube URL field - shown for all items */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">YouTube URL</label>
+                <input
+                  type="text"
+                  value={editingItem.youtubeUrl || ''}
+                  onChange={(e) => handleEditItemChange('youtubeUrl', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+                  placeholder="https://www.youtube.com/watch?v=..."
+                />
+                {editingItem.youtubeUrl && (
+                  <p className="mt-1 text-xs text-green-600 flex items-center">
+                    <Check size={12} className="mr-1" />
+                    YouTube URL ถูกต้อง
+                  </p>
+                )}
+              </div>
+              
+              {/* Thumbnail/Image URL field - shown for all items */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Image URL / URL รูปภาพ</label>
+                <input
+                  type="text"
+                  value={editingItemType === 'video' ? (editingItem.thumbnail || '') : (editingItem.imageUrl || '')}
+                  onChange={(e) => handleEditItemChange(editingItemType === 'video' ? 'thumbnail' : 'imageUrl', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+                  placeholder="https://example.com/image.jpg"
+                />
+                
+                {(editingItemType === 'video' ? editingItem.thumbnail : editingItem.imageUrl) && (
+                  <div className="mt-2">
+                    <img
+                      src={editingItemType === 'video' ? editingItem.thumbnail : editingItem.imageUrl}
+                      alt="Preview"
+                      className="h-32 object-cover rounded-md"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="px-6 py-4 bg-gray-50 border-t flex justify-end space-x-3">
+              <button
+                onClick={handleCancelEditItem}
+                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleSaveEditedItem}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+              >
+                บันทึก
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -535,22 +1054,22 @@ const ServicesAdmin = () => {
               <div className="flex items-center mb-3">
                 <input
                   type="checkbox"
-                  id="showPrices"
-                  checked={displaySettings.showPrices}
-                  onChange={(e) => handleDisplaySettingChange('showPrices', e.target.checked)}
+                  id="showDescriptions"
+                  checked={displaySettings.showDescriptions}
+                  onChange={(e) => handleDisplaySettingChange('showDescriptions', e.target.checked)}
                   className="h-4 w-4 text-blue-600 rounded"
                 />
-                <label htmlFor="showPrices" className="ml-2">แสดงราคา</label>
+                <label htmlFor="showDescriptions" className="ml-2">แสดงรายละเอียดใต้หัวข้อ</label>
               </div>
               <div className="flex items-center">
                 <input
                   type="checkbox"
-                  id="showRatings"
-                  checked={displaySettings.showRatings}
-                  onChange={(e) => handleDisplaySettingChange('showRatings', e.target.checked)}
+                  id="truncateDescriptions"
+                  checked={displaySettings.truncateDescriptions}
+                  onChange={(e) => handleDisplaySettingChange('truncateDescriptions', e.target.checked)}
                   className="h-4 w-4 text-blue-600 rounded"
                 />
-                <label htmlFor="showRatings" className="ml-2">แสดงการให้คะแนน</label>
+                <label htmlFor="truncateDescriptions" className="ml-2">จำกัดความยาวรายละเอียด</label>
               </div>
             </div>
             
@@ -572,14 +1091,12 @@ const ServicesAdmin = () => {
             <div>
               <h3 className="font-medium mb-3">การเรียงลำดับเริ่มต้น</h3>
               <div className="flex flex-wrap gap-3">
-                {['newest', 'oldest', 'nameAsc', 'nameDesc', 'priceAsc', 'priceDesc'].map((sortOption) => {
+                {['newest', 'oldest', 'nameAsc', 'nameDesc'].map((sortOption) => {
                   const labels: Record<string, string> = {
                     newest: 'ใหม่ล่าสุด',
                     oldest: 'เก่าสุด',
                     nameAsc: 'ชื่อ A-Z',
-                    nameDesc: 'ชื่อ Z-A',
-                    priceAsc: 'ราคาต่ำ-สูง',
-                    priceDesc: 'ราคาสูง-ต่ำ'
+                    nameDesc: 'ชื่อ Z-A'
                   };
                   
                   return (

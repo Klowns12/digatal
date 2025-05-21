@@ -1,0 +1,9 @@
+RewriteEngine On
+RewriteBase /
+
+# ถ้าเป็นไฟล์หรือโฟลเดอร์จริง ให้เข้าถึงโดยตรง
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# ส่ง request ทั้งหมดไปที่ index.php
+RewriteRule ^(.*)$ index.php [QSA,L]

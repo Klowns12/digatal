@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { getFeaturedItems } from '../../services/featuredItemsService';
 
-// Base service categories data
+// Base service categories data with descriptions added
 const serviceCategories = [
 	{
 		id: 'elearning',
@@ -13,8 +13,7 @@ const serviceCategories = [
 		items: Array.from({ length: 20 }, (_, i) => ({
 			id: i + 1,
 			title: `e-Learning Project ${i + 1}`,
-			price: 25.0,
-			rating: i % 2 === 0 ? 4 : 5,
+			description: `Short description for e-Learning project ${i + 1} showcasing key features and benefits.`,
 			featured: false // Will be updated from service
 		}))
 	},
@@ -25,8 +24,7 @@ const serviceCategories = [
 		items: Array.from({ length: 20 }, (_, i) => ({
 			id: i + 1,
 			title: `Video Project ${i + 1}`,
-			price: 25.0,
-			rating: 4,
+			description: `Brief overview of video project ${i + 1} highlighting production quality and educational value.`,
 			featured: false // Will be updated from service
 		}))
 	},
@@ -37,8 +35,7 @@ const serviceCategories = [
 		items: Array.from({ length: 20 }, (_, i) => ({
 			id: i + 1,
 			title: `360° Tour ${i + 1}`,
-			price: 25.0,
-			rating: 4,
+			description: `Immersive 360° virtual experience ${i + 1} allowing viewers to explore environments interactively.`,
 			featured: false // Will be updated from service
 		}))
 	},
@@ -49,8 +46,7 @@ const serviceCategories = [
 		items: Array.from({ length: 20 }, (_, i) => ({
 			id: i + 1,
 			title: `LMS Solution ${i + 1}`,
-			price: 25.0,
-			rating: 4,
+			description: `Comprehensive learning management solution ${i + 1} with analytics and user tracking capabilities.`,
 			featured: false // Will be updated from service
 		}))
 	},
@@ -61,8 +57,7 @@ const serviceCategories = [
 		items: Array.from({ length: 20 }, (_, i) => ({
 			id: i + 1,
 			title: `Web Project ${i + 1}`,
-			price: 25.0,
-			rating: 4,
+			description: `Responsive, user-friendly website ${i + 1} designed to meet specific client requirements and goals.`,
 			featured: false // Will be updated from service
 		}))
 	}
@@ -70,6 +65,7 @@ const serviceCategories = [
 
 const Services = () => {
 	const { t, i18n } = useTranslation();
+	const location = useLocation();
 	const isThaiLanguage = i18n.language === 'th';
 	
 	// Add state for processed categories
@@ -106,20 +102,18 @@ const Services = () => {
 		};
 	}, []);
 
-	const renderRating = (rating: number) => {
-		return (
-			<div className="flex">
-				{[...Array(5)].map((_, i) => (
-					<span
-						key={i}
-						className={`text-sm ${i < rating ? 'text-yellow-400' : 'text-gray-300'}`}
-					>
-						★
-					</span>
-				))}
-			</div>
-		);
-	};
+	// Scroll to section on hash change
+	useEffect(() => {
+		const hash = location.hash.replace('#', '');
+		if (hash) {
+			setTimeout(() => {
+				const element = document.getElementById(hash);
+				if (element) {
+					element.scrollIntoView({ behavior: 'smooth' });
+				}
+			}, 100);
+		}
+	}, [location.hash]);
 
 	return (
 		<section className="py-10 bg-white">
@@ -127,18 +121,23 @@ const Services = () => {
 				{categories.map((category, categoryIndex) => (
 					<motion.div
 						key={category.id}
+						id={category.id}
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.5, delay: categoryIndex * 0.1 }}
 						className={`mb-16 last:mb-0 ${categoryIndex === 0 ? 'mt-0' : ''}`}
 					>
-						<div className="text-center mb-8">
-							<h2 className="text-2xl font-bold text-gray-900 mb-1">
-								{category.title}
-							</h2>
-							<h3 className="text-lg text-gray-700">
-								{category.titleThai}
-							</h3>
+						<div className="text-center mb-8 flex items-center">
+							<div className="flex-grow h-px bg-gray-200"></div>
+							<div className="mx-4">
+								<h2 className="text-2xl font-bold text-gray-900 mb-1">
+									{category.title}
+								</h2>
+								<h3 className="text-lg text-gray-700">
+									{category.titleThai}
+								</h3>
+							</div>
+							<div className="flex-grow h-px bg-gray-200"></div>
 						</div>
 
 						<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
@@ -159,18 +158,14 @@ const Services = () => {
 									</div>
 									<div className="p-4">
 										<h3 className="text-lg font-semibold mb-2 text-gray-900">{item.title}</h3>
-										<div className="flex items-center mb-4">
-											{renderRating(item.rating)}
-										</div>
-										<div className="flex justify-between items-center">
-											<span className="text-gray-900 font-medium">฿{item.price.toFixed(2)}</span>
-										</div>
+										{/* Replacing rating and price with description */}
+										<p className="text-sm text-gray-600 line-clamp-3">{item.description}</p>
 									</div>
 								</motion.div>
 							))}
 						</div>
 
-						<div className="text-center mt-8">
+						<div className="text-left mt-8">
 							<Link
 								to={`/category/${category.id}`}
 								className="inline-block px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors"

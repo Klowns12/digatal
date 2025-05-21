@@ -37,7 +37,6 @@ const initialContent: ContentBlock[] = [
 
 // Add admin section navigation
 const adminSections = [
-  { id: 'dashboard', label: 'แดชบอร์ด', icon: Home },
   { id: 'content', label: 'เนื้อหาเว็บไซต์', icon: FileText },
   { id: 'services', label: 'บริการ', icon: Settings },
   { id: 'courses', label: 'คอร์สเรียน', icon: Book },

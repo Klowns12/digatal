@@ -9,7 +9,6 @@ const Dashboard = () => {
   const stats = [
     { name: 'Pages', count: 5, icon: <PencilIcon size={24} />, link: '/admin/content' },
     { name: 'Services', count: 4, icon: <BookOpenIcon size={24} />, link: '/admin/services' },
-    { name: 'Courses', count: 8, icon: <UserIcon size={24} />, link: '/admin/courses' },
     { name: 'Videos', count: 5, icon: <Film size={24} />, link: '/admin/videos' },
     { name: 'Featured', count: 12, icon: <Star size={24} />, link: '/admin/featured' }, // Add Featured stat
     { name: 'Logos', count: 6, icon: <Award size={24} />, link: '/admin/logos' },

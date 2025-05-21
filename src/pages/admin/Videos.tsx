@@ -1,7 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Trash2, Plus, Edit, Play } from 'lucide-react';
+import { Trash2, Plus, Edit, Play, Check, Star, MapPin, ArrowUp, ArrowDown, ExternalLink } from 'lucide-react';
 import { Video } from '../../types';
+import { 
+  getVideos, 
+  addVideo, 
+  updateVideo, 
+  deleteVideo, 
+  getYoutubeId, 
+  generateThumbnail,
+  toggleVideoFeatured,
+  moveVideoUp,
+  moveVideoDown,
+  getMaxOrderForCategory
+} from '../../services/videoService';
 
 // Sample categories for videos
 const videoCategories = [
@@ -12,50 +24,44 @@ const videoCategories = [
   { id: 'web', name: 'Web Development' }
 ];
 
-// Initial sample videos
-const initialVideos: Video[] = [
-  {
-    id: '1',
-    title: 'Introduction to SCORM',
-    titleThai: 'แนะนำ SCORM',
-    description: 'Learn about SCORM packages and how they work',
-    descriptionThai: 'เรียนรู้เกี่ยวกับแพ็คเกจ SCORM และการทำงาน',
-    youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    categoryId: 'elearning',
-    thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg'
-  },
-  {
-    id: '2',
-    title: 'Video Production Basics',
-    titleThai: 'พื้นฐานการผลิตวิดีโอ',
-    description: 'Basic techniques for educational video production',
-    descriptionThai: 'เทคนิคพื้นฐานสำหรับการผลิตวิดีโอเพื่อการศึกษา',
-    youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    categoryId: 'video',
-    thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg'
-  }
-];
-
 const VideosAdmin = () => {
   const { t } = useTranslation();
-  const [videos, setVideos] = useState<Video[]>(initialVideos);
+  const [videos, setVideos] = useState<Video[]>([]);
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [activeTab, setActiveTab] = useState<'english' | 'thai'>('english');
   const [filteredCategory, setFilteredCategory] = useState<string>('all');
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   
-  // Extract YouTube video ID from URL
-  const getYoutubeId = (url: string): string => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : '';
+  // Add selected category for adding new videos
+  const [selectedCategory, setSelectedCategory] = useState(videoCategories[0].id);
+  
+  // Get max order for current category
+  const [maxOrder, setMaxOrder] = useState<number>(0);
+  
+  // Load videos on component mount and when updated
+  const loadVideos = () => {
+    const currentVideos = getVideos();
+    setVideos(currentVideos);
   };
   
-  // Generate thumbnail URL from YouTube URL
-  const generateThumbnail = (url: string): string => {
-    const videoId = getYoutubeId(url);
-    return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '';
-  };
+  useEffect(() => {
+    loadVideos();
+    
+    // Listen for updates from other components or browser tabs
+    window.addEventListener('videos-updated', loadVideos);
+    return () => window.removeEventListener('videos-updated', loadVideos);
+  }, []);
+  
+  // Update max order when filtered category changes
+  useEffect(() => {
+    if (filteredCategory === 'all') {
+      setMaxOrder(0);
+    } else {
+      const max = getMaxOrderForCategory(filteredCategory);
+      setMaxOrder(max);
+    }
+  }, [filteredCategory, videos]);
   
   const handleEdit = (video: Video) => {
     setEditingVideo(video);
@@ -63,6 +69,11 @@ const VideosAdmin = () => {
   };
   
   const handleAdd = () => {
+    // Get the max order for the selected category
+    const currentMaxOrder = filteredCategory === 'all' 
+      ? 0 
+      : getMaxOrderForCategory(selectedCategory);
+    
     setEditingVideo({
       id: `new-${Date.now()}`,
       title: 'New Video',
@@ -70,15 +81,19 @@ const VideosAdmin = () => {
       description: '',
       descriptionThai: '',
       youtubeUrl: '',
-      categoryId: videoCategories[0].id,
-      thumbnail: ''
+      categoryId: selectedCategory,
+      thumbnail: '',
+      featured: false,
+      location: '',
+      order: currentMaxOrder + 1 // Default to putting at the end
     });
     setIsAdding(true);
   };
   
   const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this video?')) {
-      setVideos(videos.filter(v => v.id !== id));
+    if (window.confirm('Are you sure you want to delete this video?')) {
+      deleteVideo(id);
+      loadVideos();
     }
   };
   
@@ -89,18 +104,25 @@ const VideosAdmin = () => {
   
   const handleSave = () => {
     if (editingVideo) {
-      // Generate thumbnail from YouTube URL
-      const updatedVideo = {
-        ...editingVideo,
-        thumbnail: generateThumbnail(editingVideo.youtubeUrl)
-      };
-      
       if (isAdding) {
-        setVideos([...videos, updatedVideo]);
+        const { id, thumbnail, ...videoData } = editingVideo;
+        const addedVideo = addVideo(videoData);
+        
+        // If this is a 360 video, also update services display
+        if (videoData.categoryId === '360') {
+          // Dispatch custom event for 360 videos specifically
+          window.dispatchEvent(new CustomEvent('360-video-added', { detail: addedVideo }));
+        }
       } else {
-        setVideos(videos.map(v => v.id === updatedVideo.id ? updatedVideo : v));
+        const { id, ...updates } = editingVideo;
+        updateVideo(id, updates);
       }
       
+      // Show success message
+      setShowSaveSuccess(true);
+      setTimeout(() => setShowSaveSuccess(false), 3000);
+      
+      loadVideos();
       setEditingVideo(null);
       setIsAdding(false);
     }
@@ -109,6 +131,29 @@ const VideosAdmin = () => {
   const handleChange = (field: keyof Video, value: string) => {
     if (editingVideo) {
       setEditingVideo({ ...editingVideo, [field]: value });
+    }
+  };
+  
+  // Toggle featured status for a video
+  const handleToggleFeatured = (videoId: string) => {
+    const isFeatured = toggleVideoFeatured(videoId);
+    // Update local state
+    setVideos(prev => prev.map(v => 
+      v.id === videoId ? { ...v, featured: isFeatured } : v
+    ));
+  };
+  
+  // Handle moving a video up in order
+  const handleMoveUp = (videoId: string) => {
+    if (moveVideoUp(videoId)) {
+      loadVideos();
+    }
+  };
+  
+  // Handle moving a video down in order
+  const handleMoveDown = (videoId: string) => {
+    if (moveVideoDown(videoId)) {
+      loadVideos();
     }
   };
   
@@ -132,27 +177,41 @@ const VideosAdmin = () => {
         )}
       </div>
       
+      {/* Show success message when videos are updated */}
+      {showSaveSuccess && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md flex items-center mb-4">
+          <Check size={20} className="mr-2 flex-shrink-0" />
+          <p>บันทึกการเปลี่ยนแปลงแล้ว</p>
+        </div>
+      )}
+      
       {!editingVideo ? (
         <>
-          {/* Category filter */}
+          {/* Category filter with selected category tracking */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Category:</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">เลือกหมวดหมู่วิดีโอ:</label>
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={() => setFilteredCategory('all')}
+                onClick={() => {
+                  setFilteredCategory('all');
+                  setSelectedCategory(videoCategories[0].id);
+                }}
                 className={`px-3 py-1 text-sm rounded-full ${
                   filteredCategory === 'all' 
                     ? 'bg-blue-600 text-white' 
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                All Categories
+                ทุกหมวดหมู่
               </button>
               
               {videoCategories.map(category => (
                 <button
                   key={category.id}
-                  onClick={() => setFilteredCategory(category.id)}
+                  onClick={() => {
+                    setFilteredCategory(category.id);
+                    setSelectedCategory(category.id);
+                  }}
                   className={`px-3 py-1 text-sm rounded-full ${
                     filteredCategory === category.id 
                       ? 'bg-blue-600 text-white' 
@@ -165,14 +224,32 @@ const VideosAdmin = () => {
             </div>
           </div>
           
+          {/* Add notice about 360 videos */}
+          {filteredCategory === '360' && (
+            <div className="mt-3 bg-blue-50 border-l-4 border-blue-500 p-3">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <Info size={16} className="h-5 w-5 text-blue-600" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-blue-700">
+                    วิดีโอ 360° ที่เพิ่มในนี้จะปรากฏในหน้าบริการ 360° Virtual Tours โดยอัตโนมัติ
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* Videos grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredVideos.map(video => (
+            {filteredVideos
+              .sort((a, b) => a.order - b.order) // Sort by order
+              .map(video => (
               <div
                 key={video.id}
                 className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200"
               >
-                {/* Video thumbnail with play icon */}
+                {/* Video thumbnail with play icon - fixed syntax */}
                 <div className="relative h-48 bg-gray-100">
                   {video.thumbnail ? (
                     <img 
@@ -198,10 +275,41 @@ const VideosAdmin = () => {
                     <div>
                       <h3 className="font-medium text-gray-900">{video.title}</h3>
                       <p className="text-sm text-gray-500">{video.titleThai}</p>
+                      
+                      {/* Show order number */}
+                      <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                        <span className="px-2 py-0.5 bg-gray-100 rounded-full">
+                          ลำดับที่: {video.order}
+                        </span>
+                      </div>
+                      
+                      {/* Show location if available */}
+                      {video.location && (
+                        <div className="flex items-center text-xs text-gray-500 mt-1">
+                          <MapPin size={12} className="mr-1" />
+                          <span>{video.location}</span>
+                        </div>
+                      )}
                     </div>
-                    <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
-                      {videoCategories.find(c => c.id === video.categoryId)?.name || 'Uncategorized'}
-                    </span>
+                    
+                    <div className="flex flex-col items-end">
+                      <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full mb-2">
+                        {videoCategories.find(c => c.id === video.categoryId)?.name || 'Uncategorized'}
+                      </span>
+                      
+                      {/* Featured status toggle button */}
+                      <button
+                        onClick={() => handleToggleFeatured(video.id)}
+                        className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
+                          video.featured
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}
+                      >
+                        <Star size={12} fill={video.featured ? 'currentColor' : 'none'} />
+                        {video.featured ? 'แนะนำ' : 'ไม่แนะนำ'}
+                      </button>
+                    </div>
                   </div>
                   
                   <p className="text-sm text-gray-600 line-clamp-2 mb-4">
@@ -219,6 +327,23 @@ const VideosAdmin = () => {
                     </a>
                     
                     <div className="flex space-x-2">
+                      {/* Add order control buttons */}
+                      <button
+                        onClick={() => handleMoveUp(video.id)}
+                        className="p-1 text-gray-500 hover:text-gray-700"
+                        title="Move up"
+                        disabled={video.order === 1}
+                      >
+                        <ArrowUp size={16} className={video.order === 1 ? "opacity-30" : ""} />
+                      </button>
+                      <button
+                        onClick={() => handleMoveDown(video.id)}
+                        className="p-1 text-gray-500 hover:text-gray-700"
+                        title="Move down"
+                      >
+                        <ArrowDown size={16} />
+                      </button>
+                      
                       <button
                         onClick={() => handleEdit(video)}
                         className="p-1 text-blue-600 hover:text-blue-900"
@@ -325,7 +450,7 @@ const VideosAdmin = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">หมวดหมู่</label>
               <select
                 value={editingVideo.categoryId}
                 onChange={(e) => handleChange('categoryId', e.target.value)}
@@ -338,6 +463,64 @@ const VideosAdmin = () => {
                 ))}
               </select>
             </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">สถานที่ถ่ายทำ</label>
+              <input
+                type="text"
+                value={editingVideo.location || ''}
+                onChange={(e) => handleChange('location', e.target.value)}
+                placeholder="กรุงเทพฯ, เชียงใหม่, ภูเก็ต"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+              <p className="mt-1 text-sm text-gray-500">ระบุสถานที่ถ่ายทำวิดีโอ (ไม่บังคับ)</p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ลำดับการแสดงผล</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="1"
+                  value={editingVideo.order || 1}
+                  onChange={(e) => handleChange('order', e.target.value)}
+                  className="w-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
+                <span className="text-sm text-gray-500">จากทั้งหมด {maxOrder} รายการในหมวดหมู่นี้</span>
+              </div>
+              <p className="mt-1 text-sm text-gray-500">
+                กำหนดลำดับการแสดงผลของวิดีโอ หากไม่ระบุ จะถูกเพิ่มไว้ท้ายสุด
+              </p>
+            </div>
+            
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="featured"
+                checked={editingVideo.featured || false}
+                onChange={(e) => handleChange('featured', e.target.checked ? 'true' : 'false')}
+                className="h-4 w-4 text-blue-600 rounded"
+              />
+              <label htmlFor="featured" className="ml-2 text-sm text-gray-700">
+                แนะนำวิดีโอนี้ในหน้าหลัก
+              </label>
+            </div>
+            
+            {/* Add notice about 360 selection */}
+            {editingVideo.categoryId === '360' && (
+              <div className="mt-4 bg-blue-50 border-l-4 border-blue-500 p-3">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <Info size={16} className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-blue-700">
+                      วิดีโอในหมวด 360° จะถูกแสดงในหน้าบริการ 360° Virtual Tours โดยอัตโนมัติ
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             
             <div className="flex justify-end space-x-3 pt-4">
               <button
@@ -360,10 +543,8 @@ const VideosAdmin = () => {
   );
 };
 
-export default VideosAdmin;
-
-// Add missing ExternalLink component
-const ExternalLink = ({ size = 24, className = '' }) => (
+// Add missing Info icon component
+const Info = ({ size = 24, className = '' }) => (
   <svg 
     xmlns="http://www.w3.org/2000/svg" 
     width={size} 
@@ -376,8 +557,10 @@ const ExternalLink = ({ size = 24, className = '' }) => (
     strokeLinejoin="round" 
     className={className}
   >
-    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-    <polyline points="15 3 21 3 21 9"></polyline>
-    <line x1="10" y1="14" x2="21" y2="3"></line>
+    <circle cx="12" cy="12" r="10"></circle>
+    <line x1="12" y1="16" x2="12" y2="12"></line>
+    <line x1="12" y1="8" x2="12.01" y2="8"></line>
   </svg>
 );
+
+export default VideosAdmin;

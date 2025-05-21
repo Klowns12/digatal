@@ -7,16 +7,14 @@ import { Check } from 'lucide-react';
 interface ServiceItem {
   id: number;
   title: string;
-  price: number;
-  rating: number;
+  description: string;
 }
 
 const generateItems = (prefix: string, count: number): ServiceItem[] => {
   return Array.from({ length: count }, (_, i) => ({
     id: i + 1,
     title: `${prefix} ${i + 1}`,
-    price: 25.00,
-    rating: 4
+    description: `Description for ${prefix} item ${i + 1} with details about the project.`
   }));
 };
 
@@ -100,21 +98,6 @@ const ServicesPage = () => {
   const isThaiLanguage = currentLanguage === 'th';
   const hash = location.hash.replace('#', '');
 
-  const renderRating = (rating: number) => {
-    return (
-      <div className="flex">
-        {[...Array(5)].map((_, i) => (
-          <span
-            key={i}
-            className={`text-sm ${i < rating ? 'text-yellow-400' : 'text-gray-300'}`}
-          >
-            ★
-          </span>
-        ))}
-      </div>
-    );
-  };
-
   return (
     <div className="pt-8 pb-16">
       <main className="container mx-auto px-4">
@@ -161,7 +144,7 @@ const ServicesPage = () => {
                     ))}
                   </ul>
                   <Link
-                    to={`/services/${category.id}`}
+                    to={`/#${category.id}`}
                     className="inline-block bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition"
                   >
                     {isThaiLanguage ? 'ดูตัวอย่าง' : 'Explore Examples'}

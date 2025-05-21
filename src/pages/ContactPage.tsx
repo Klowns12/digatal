@@ -1,12 +1,23 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ContactForm from '../components/contact/ContactForm';
 import { MapPin, Phone, Mail, Clock, ExternalLink } from 'lucide-react';
+import { getLocation, generateEmbedMapUrl } from '../services/locationService';
 
 const ContactPage = () => {
   const { t, i18n } = useTranslation();
   const isThaiLanguage = i18n.language === 'th';
+  const [location, setLocation] = useState(getLocation());
   
+  useEffect(() => {
+    const handleLocationUpdate = () => {
+      setLocation(getLocation());
+    };
+    
+    window.addEventListener('location-updated', handleLocationUpdate);
+    return () => window.removeEventListener('location-updated', handleLocationUpdate);
+  }, []);
+
   return (
     <div className="pt-8 pb-16">
       <div className="container mx-auto px-4 mb-12">
@@ -40,11 +51,8 @@ const ContactPage = () => {
                     <h3 className="font-semibold text-gray-800">
                       {isThaiLanguage ? 'ที่อยู่' : 'Address'}
                     </h3>
-                    <p className="text-gray-600">
-                      Digital Nova Co., Ltd.<br />
-                      123/45 Office Building<br />
-                      Sukhumvit Road, Bangkok 10110<br />
-                      Thailand
+                    <p className="text-gray-600 whitespace-pre-line">
+                      {isThaiLanguage ? location.address.th : location.address.en}
                     </p>
                   </div>
                 </div>
@@ -72,7 +80,6 @@ const ContactPage = () => {
                     <h3 className="font-semibold text-gray-800">
                       {isThaiLanguage ? 'อีเมล' : 'Email'}
                     </h3>
-                    <p className="text-gray-600">pannawach.r@gmail.com</p>
                     <p className="text-gray-600">digitalnovabkk@gmail.com</p>
                   </div>
                 </div>
@@ -104,7 +111,7 @@ const ContactPage = () => {
                   {isThaiLanguage ? 'แผนที่และตำแหน่งที่ตั้ง' : 'Location'}
                 </h2>
                 <a 
-                  href="https://www.google.com/maps?q=Bangkok+Thailand" 
+                  href={location.googleMapsUrl}
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="text-blue-600 flex items-center text-sm hover:underline"
@@ -115,7 +122,7 @@ const ContactPage = () => {
               </div>
               <div className="aspect-w-16 aspect-h-9 rounded-lg overflow-hidden">
                 <iframe 
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d496115.0967162857!2d100.35290282235651!3d13.724431627906472!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x311d6032280d61f3%3A0x10100b25de24820!2sBangkok%2C%20Thailand!5e0!3m2!1sen!2sth!4v1647098981645!5m2!1sen!2sth" 
+                  src={generateEmbedMapUrl(location.latitude, location.longitude, location.zoom)}
                   width="100%" 
                   height="300" 
                   style={{ border: 0 }} 
@@ -124,6 +131,11 @@ const ContactPage = () => {
                   title="Office Location Map"
                   className="rounded-lg"
                 ></iframe>
+              </div>
+              <div className="mt-4 text-gray-600">
+                <p className="whitespace-pre-line">
+                  {isThaiLanguage ? location.address.th : location.address.en}
+                </p>
               </div>
             </div>
           </div>

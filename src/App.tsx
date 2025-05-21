@@ -12,13 +12,12 @@ import LoginPage from './pages/admin/LoginPage';
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminContentEdit from './pages/admin/ContentEdit';
 import AdminServices from './pages/admin/Services';
-import AdminCourses from './pages/admin/Courses';
 import AdminVideos from './pages/admin/Videos';
 import AdminLogos from './pages/admin/Logos'; 
-import AdminFeaturedItems from './pages/admin/FeaturedItems'; // Import the new component
 import AdminImages from './pages/admin/Images';
 import NotFoundPage from './pages/NotFoundPage';
 import CategoryPage from './pages/CategoryPage';
+import AdminLocationManager from './pages/admin/LocationManager';
 
 // Components
 import Layout from './components/layout/Layout';
@@ -49,11 +48,10 @@ function App() {
             <Route index element={<AdminDashboard />} />
             <Route path="content" element={<AdminContentEdit />} />
             <Route path="services" element={<AdminServices />} />
-            <Route path="courses" element={<AdminCourses />} />
             <Route path="videos" element={<AdminVideos />} />
-            <Route path="featured" element={<AdminFeaturedItems />} /> {/* Add the new route */}
             <Route path="logos" element={<AdminLogos />} /> 
             <Route path="images" element={<AdminImages />} />
+            <Route path="location" element={<AdminLocationManager />} /> {/* Add new route */}
           </Route>
           
           {/* Not Found */}

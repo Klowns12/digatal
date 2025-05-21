@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, FileText, Video, Image, LogOut, Menu, X, Film, Award, Star } from 'lucide-react';
+import { LayoutDashboard, FileText, Video, Image, LogOut, Menu, X, Film, Award, MapPin } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 const AdminLayout = () => {
@@ -20,11 +20,10 @@ const AdminLayout = () => {
     { path: '/admin', label: t('admin.dashboard'), icon: <LayoutDashboard size={20} /> },
     { path: '/admin/content', label: t('admin.content'), icon: <FileText size={20} /> },
     { path: '/admin/services', label: t('admin.services'), icon: <Video size={20} /> },
-    { path: '/admin/courses', label: t('admin.courses'), icon: <FileText size={20} /> },
     { path: '/admin/videos', label: t('admin.videos'), icon: <Film size={20} /> },
-    { path: '/admin/featured', label: t('admin.featuredItems'), icon: <Star size={20} /> }, // Add featured items
     { path: '/admin/logos', label: t('admin.logos'), icon: <Award size={20} /> },
     { path: '/admin/images', label: t('admin.images'), icon: <Image size={20} /> },
+    { path: '/admin/location', label: t('admin.location'), icon: <MapPin size={20} /> }, // New location menu
   ];
 
   return (
