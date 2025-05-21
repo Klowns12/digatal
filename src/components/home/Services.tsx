@@ -168,7 +168,7 @@ const Services = () => {
 						<div className="text-left mt-8">
 							<Link
 								to={`/category/${category.id}`}
-								className="inline-block px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors"
+								className="inline-block px-3 py-1 text-orange-500 border-2 border-orange-500 font-medium rounded-full hover:bg-orange-500 hover:text-white transition-colors"
 							>
 								{isThaiLanguage ? 'อ่านเพิ่มเติม' : 'Read More'}
 							</Link>
