@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
+import { Play, X } from 'lucide-react';
 import { getFeaturedItems } from '../../services/featuredItemsService';
 import { getVideosByCategory, getFeaturedInCategoryVideos } from '../../services/videoService';
+import YouTubeEmbed, { getYoutubeId } from '../videos/YouTubeEmbed';
 
 // Base service categories data with descriptions added
 const serviceCategories = [
@@ -68,11 +70,9 @@ const Services = () => {
 	const { t, i18n } = useTranslation();
 	const location = useLocation();
 	const isThaiLanguage = i18n.language === 'th';
-	
-	// Add state for processed categories
 	const [categories, setCategories] = useState(serviceCategories);
-	// เพิ่ม state สำหรับเก็บวิดีโอ
 	const [categoryVideos, setCategoryVideos] = useState<Record<string, any[]>>({});
+	const [selectedVideo, setSelectedVideo] = useState<{id: string, url: string, title: string} | null>(null);
 
 	// Listen for changes and update when featured items change
 	useEffect(() => {
@@ -138,6 +138,20 @@ const Services = () => {
 		}
 	}, [location.hash]);
 
+	const openVideoModal = (video: any) => {
+		if (video.youtubeUrl) {
+			setSelectedVideo({
+				id: video.id,
+				url: video.youtubeUrl,
+				title: isThaiLanguage && video.titleThai ? video.titleThai : video.title
+			});
+		}
+	};
+
+	const closeVideoModal = () => {
+		setSelectedVideo(null);
+	};
+
 	return (
 		<section className="py-10 bg-white">
 			<div className="container mx-auto px-4">
@@ -179,6 +193,16 @@ const Services = () => {
 											alt={video.title}
 											className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
 										/>
+										{video.youtubeUrl && (
+											<div 
+												className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 hover:bg-opacity-50 cursor-pointer transition-all"
+												onClick={() => openVideoModal(video)}
+											>
+												<div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+													<Play size={24} className="text-blue-600 ml-1" />
+												</div>
+											</div>
+										)}
 									</div>
 									<div className="p-4">
 										<h3 className="text-lg font-semibold mb-2 text-gray-900">
@@ -227,6 +251,43 @@ const Services = () => {
 					</motion.div>
 				))}
 			</div>
+
+			{/* Video Modal Popup */}
+			<AnimatePresence>
+				{selectedVideo && (
+					<motion.div 
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						exit={{ opacity: 0 }}
+						className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4 md:p-8"
+					>
+						<motion.div 
+							initial={{ scale: 0.9, opacity: 0 }}
+							animate={{ scale: 1, opacity: 1 }}
+							exit={{ scale: 0.9, opacity: 0 }}
+							className="bg-white rounded-lg shadow-2xl w-full max-w-4xl overflow-hidden relative"
+						>
+							<div className="p-4 bg-gray-100 flex justify-between items-center">
+								<h3 className="font-medium text-lg line-clamp-1">{selectedVideo.title}</h3>
+								<button 
+									onClick={closeVideoModal}
+									className="p-1 hover:bg-gray-200 rounded-full transition-colors"
+								>
+									<X size={24} />
+								</button>
+							</div>
+							
+							<div className="relative">
+								<YouTubeEmbed 
+									videoId={getYoutubeId(selectedVideo.url)} 
+									title={selectedVideo.title}
+									className="aspect-video" 
+								/>
+							</div>
+						</motion.div>
+					</motion.div>
+				)}
+			</AnimatePresence>
 		</section>
 	);
 };
