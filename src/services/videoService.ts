@@ -1,4 +1,5 @@
 import { Video } from '../types';
+import { toggleItemFeatured } from './homepageService';
 
 // Initial sample videos
 const initialVideos: Video[] = [
@@ -72,22 +73,21 @@ export const getMaxOrderForCategory = (categoryId: string): number => {
   return Math.max(...categoryVideos.map(video => video.order));
 };
 
-// Get videos by category with preserved order from admin panel
+// Get videos by category with preserved order and featured status
 export const getVideosByCategory = (categoryId: string): Video[] => {
   return loadVideos()
     .filter(video => video.categoryId === categoryId)
-    .sort((a, b) => {
-      // Strictly preserve the order defined in admin
-      return a.order - b.order;
-    });
+    .sort((a, b) => a.order - b.order);
 };
 
 // Get featured videos in a category (for home page)
 export const getFeaturedInCategoryVideos = (categoryId: string): Video[] => {
   const videos = loadVideos();
-  return videos
-    .filter(video => video.categoryId === categoryId && video.featured)
-    .sort((a, b) => a.order - b.order); // Preserve exact order of featured videos
+  // กรองเฉพาะวิดีโอที่ featured=true และอยู่ในหมวดหมู่ที่ต้องการ
+  return videos.filter(video => 
+    video.categoryId === categoryId && 
+    video.featured === true
+  ).sort((a, b) => a.order - b.order);
 };
 
 // Get a specific video
@@ -254,18 +254,28 @@ export const moveVideoDown = (id: string): boolean => {
 // Toggle featured status for a video
 export const toggleVideoFeatured = (id: string): boolean => {
   const videos = loadVideos();
-  let isFeatured = false;
+  const videoToUpdate = videos.find(v => v.id === id);
   
-  const updatedVideos = videos.map(video => {
-    if (video.id === id) {
-      isFeatured = !video.featured;
-      return { ...video, featured: isFeatured };
-    }
-    return video;
-  });
+  if (!videoToUpdate) return false;
+
+  // Count current featured videos in the same category
+  const categoryFeaturedCount = videos.filter(
+    v => v.categoryId === videoToUpdate.categoryId && v.featured && v.id !== id
+  ).length;
+
+  // Don't allow more than 4 featured videos per category
+  if (!videoToUpdate.featured && categoryFeaturedCount >= 4) {
+    return false;
+  }
+
+  // Update featured status
+  const updatedVideos = videos.map(video => 
+    video.id === id ? { ...video, featured: !video.featured } : video
+  );
   
   saveVideos(updatedVideos);
-  return isFeatured;
+  
+  return !videoToUpdate.featured;
 };
 
 // Delete a video and reorder remaining videos

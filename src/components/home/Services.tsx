@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 import { getFeaturedItems } from '../../services/featuredItemsService';
+import { getVideosByCategory, getFeaturedInCategoryVideos } from '../../services/videoService';
 
 // Base service categories data with descriptions added
 const serviceCategories = [
@@ -70,7 +71,9 @@ const Services = () => {
 	
 	// Add state for processed categories
 	const [categories, setCategories] = useState(serviceCategories);
-	
+	// เพิ่ม state สำหรับเก็บวิดีโอ
+	const [categoryVideos, setCategoryVideos] = useState<Record<string, any[]>>({});
+
 	// Listen for changes and update when featured items change
 	useEffect(() => {
 		// Function to update categories with featured items
@@ -99,6 +102,26 @@ const Services = () => {
 		
 		return () => {
 			window.removeEventListener('featured-items-changed', handleFeaturedChange);
+		};
+	}, []);
+
+	// โหลดวิดีโอที่ถูกเลือกแสดงในหน้าหลัก
+	useEffect(() => {
+		const loadFeaturedVideos = () => {
+			serviceCategories.forEach(category => {
+				const videos = getFeaturedInCategoryVideos(category.id);
+				setCategoryVideos(prev => ({
+					...prev,
+					[category.id]: videos
+				}));
+			});
+		};
+
+		loadFeaturedVideos();
+		window.addEventListener('video-featured-changed', loadFeaturedVideos);
+		
+		return () => {
+			window.removeEventListener('video-featured-changed', loadFeaturedVideos);
 		};
 	}, []);
 
@@ -141,6 +164,34 @@ const Services = () => {
 						</div>
 
 						<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+							{/* แสดงวิดีโอที่ถูกเลือก */}
+							{categoryVideos[category.id]?.map((video, index) => (
+								<motion.div
+									key={`video-${video.id}`}
+									initial={{ opacity: 0, y: 20 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{ duration: 0.5, delay: index * 0.1 }}
+									className="bg-white rounded-lg overflow-hidden border border-gray-200 hover:shadow-md transition-shadow"
+								>
+									<div className="relative h-48 overflow-hidden">
+										<img
+											src={video.thumbnail}
+											alt={video.title}
+											className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+										/>
+									</div>
+									<div className="p-4">
+										<h3 className="text-lg font-semibold mb-2 text-gray-900">
+											{isThaiLanguage ? video.titleThai : video.title}
+										</h3>
+										<p className="text-sm text-gray-600 line-clamp-3">
+											{isThaiLanguage ? video.descriptionThai : video.description}
+										</p>
+									</div>
+								</motion.div>
+							))}
+							
+							{/* แสดงรายการอื่นๆ */}
 							{category.items.filter(item => item.featured).map((item, index) => (
 								<motion.div
 									key={item.id}

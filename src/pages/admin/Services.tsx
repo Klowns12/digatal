@@ -164,6 +164,29 @@ const ServicesAdmin = () => {
     return () => window.removeEventListener('videos-updated', loadAllVideos);
   }, []);
   
+  // Add event listener for homepage item updates
+  useEffect(() => {
+    const handleHomepageUpdate = () => {
+      loadVideos();
+      Object.keys(categoryItems).forEach(categoryId => {
+        getCategoryItemsWithFeatured(categoryId).then(items => {
+          setCategoryItems(prev => ({
+            ...prev,
+            [categoryId]: items
+          }));
+        });
+      });
+    };
+
+    window.addEventListener('homepage-items-updated', handleHomepageUpdate);
+    window.addEventListener('video-featured-changed', handleHomepageUpdate);
+    
+    return () => {
+      window.removeEventListener('homepage-items-updated', handleHomepageUpdate);
+      window.removeEventListener('video-featured-changed', handleHomepageUpdate);
+    };
+  }, []);
+  
   const loadAllVideos = () => {
     const videos: Record<string, Array<any>> = {};
     Object.keys(allCategoriesItems).forEach(categoryId => {
@@ -245,20 +268,19 @@ const ServicesAdmin = () => {
     });
   };
   
-  // Handle toggling featured status for videos
+  // Update handleToggleVideoFeatured
   const handleToggleVideoFeatured = (categoryId: string, videoId: string) => {
-    // Toggle using the video service
-    const isFeatured = toggleVideoFeatured(categoryId, videoId);
+    const featured = toggleVideoFeatured(videoId);
     
     // Update local state
-    setCategoryVideos(prev => {
-      return {
-        ...prev,
-        [categoryId]: prev[categoryId].map(video => 
-          video.id === videoId ? { ...video, featured: isFeatured } : video
-        )
-      };
-    });
+    setCategoryVideos(prev => ({
+      ...prev,
+      [categoryId]: prev[categoryId].map(video => 
+        video.id === videoId ? { ...video, featured } : video
+      )
+    }));
+
+    return featured;
   };
   
   const saveHomepageSettings = () => {
@@ -288,8 +310,14 @@ const ServicesAdmin = () => {
     const currentPage = categoryPagination[categoryId] || 1;
     const startIndex = (currentPage - 1) * itemsPerPage;
     
-    // Combine videos and regular items, preserving video order at the top
-    const combinedItems = [...videos, ...items];
+    // Ensure videos have the correct featured status
+    const processedVideos = videos.map(video => ({
+      ...video,
+      isVideo: true // Add flag to identify video items
+    }));
+    
+    // Combine videos and regular items
+    const combinedItems = [...processedVideos, ...items];
     
     return combinedItems.slice(startIndex, startIndex + itemsPerPage);
   };
@@ -757,14 +785,14 @@ const ServicesAdmin = () => {
                 {/* Display current page items */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {currentPageItems.map((item) => {
-                    // Check if this is a video item
-                    const isVideo = 'youtubeUrl' in item && !('featured' in item);
+                    const isVideo = item.isVideo;
+                    const isFeatured = isVideo ? item.featured : item.featured;
                     
                     return (
                       <div 
                         key={isVideo ? `video-${item.id}` : item.id}
                         className={`border rounded-md p-4 transition-all ${
-                          (isVideo ? item.featured : item.featured)
+                          isFeatured
                             ? 'border-blue-300 bg-blue-50' 
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
@@ -810,13 +838,13 @@ const ServicesAdmin = () => {
                                 }
                               }}
                               className={`flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center ${
-                                (isVideo ? item.featured : item.featured)
+                                isFeatured
                                   ? 'bg-blue-500 text-white' 
                                   : 'bg-gray-200 text-gray-500 hover:bg-gray-300'
                               }`}
-                              disabled={!(isVideo ? item.featured : item.featured) && totalFeaturedCount >= 4}
+                              disabled={!isFeatured && totalFeaturedCount >= 4}
                             >
-                              <Star size={14} fill={(isVideo ? item.featured : item.featured) ? 'currentColor' : 'none'} />
+                              <Star size={14} fill={isFeatured ? 'currentColor' : 'none'} />
                             </button>
                           </div>
                         </div>

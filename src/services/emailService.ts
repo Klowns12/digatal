@@ -13,9 +13,9 @@ export const sendEmail = async (data: EmailMessage): Promise<boolean> => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        service_id: 'YOUR_SERVICE_ID',
-        template_id: 'YOUR_TEMPLATE_ID',
-        user_id: 'YOUR_USER_ID',
+        service_id: 'service_84mrsba',
+        template_id: 'template_c6u3dvi',
+        user_id: 'QAXS_hlgfJQSeZ',
         template_params: {
           to_email: 'digitalnovabkk@gmail.com',
           from_name: data.name,

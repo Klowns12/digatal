@@ -14,6 +14,7 @@ import {
   moveVideoDown,
   getMaxOrderForCategory
 } from '../../services/videoService';
+import { toast } from "../../components/ui/use-toast";
 
 // Sample categories for videos
 const videoCategories = [
@@ -134,9 +135,32 @@ const VideosAdmin = () => {
     }
   };
   
+  // Add this function to count featured videos in a category
+  const getFeaturedCount = (categoryId: string): number => {
+    return videos.filter(v => v.categoryId === categoryId && v.featured).length;
+  };
+  
   // Toggle featured status for a video
   const handleToggleFeatured = (videoId: string) => {
+    const video = videos.find(v => v.id === videoId);
+    if (!video) return;
+    
+    const featuredCount = getFeaturedCount(video.categoryId);
+    
+    // Check if trying to feature when already at limit
+    if (!video.featured && featuredCount >= 4) {
+      toast({
+        title: "ไม่สามารถเพิ่มได้",
+        description: "สามารถเลือกได้สูงสุด 4 รายการต่อหมวดหมู่",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    
     const isFeatured = toggleVideoFeatured(videoId);
+    
     // Update local state
     setVideos(prev => prev.map(v => 
       v.id === videoId ? { ...v, featured: isFeatured } : v
@@ -298,17 +322,7 @@ const VideosAdmin = () => {
                       </span>
                       
                       {/* Featured status toggle button */}
-                      <button
-                        onClick={() => handleToggleFeatured(video.id)}
-                        className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
-                          video.featured
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : 'bg-gray-100 text-gray-600'
-                        }`}
-                      >
-                        <Star size={12} fill={video.featured ? 'currentColor' : 'none'} />
-                        {video.featured ? 'แนะนำ' : 'ไม่แนะนำ'}
-                      </button>
+                      {renderFeaturedBadge(video)}
                     </div>
                   </div>
                   
