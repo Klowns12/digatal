@@ -577,4 +577,25 @@ const Info = ({ size = 24, className = '' }) => (
   </svg>
 );
 
+// Add this before the Info component
+const renderFeaturedBadge = (video: Video) => {
+  return (
+    <button
+      onClick={() => handleToggleFeatured(video.id)}
+      className={`flex items-center px-2 py-1 rounded-full text-xs ${
+        video.featured
+          ? 'bg-yellow-50 text-yellow-600 hover:bg-yellow-100'
+          : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+      }`}
+      title={video.featured ? 'Remove from featured' : 'Add to featured'}
+    >
+      <Star
+        size={12}
+        className={`mr-1 ${video.featured ? 'fill-yellow-500' : ''}`}
+      />
+      {video.featured ? 'Featured' : 'Feature'}
+    </button>
+  );
+};
+
 export default VideosAdmin;
